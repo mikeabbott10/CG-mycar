@@ -16,8 +16,7 @@ Renderer.loadLights = function()
     for(var i = 0; i < Game.scene.lamps.length; i++)
         gl.uniform1f(shader.uSpotLightLocation[i].intensity, 10);
 
-    for(var i = 0; i < Game.scene.lamps.length; i++)
-    {
+    for(var i = 0; i < Game.scene.lamps.length; i++){
         var lampPosition = glMatrix.vec3.clone(Game.scene.lamps[i].position);
         lampPosition[1] = lampPosition[1] + Game.scene.lamps[i].height -1;
         gl.uniform3fv(shader.uSpotLightLocation[i].position, lampPosition);
@@ -127,7 +126,7 @@ Renderer.drawScene = function ()
 
     // drawing the car
     if(use_color){
-        gl.uniform1i(shader.uMaterialLocation.is_solid_color, 1);
+        gl.uniform1i(shader.uMaterialLocation.is_solid_color, 1); // no texture
         gl.uniform4fv(shader.uMaterialLocation.specularColor, [ 1, 1, 1, 1 ]);
     }
 
@@ -138,11 +137,9 @@ Renderer.drawScene = function ()
     Renderer.draw_car.draw(Renderer.car, gl, shader, stack, use_color);
     stack.pop();
 
-    //gl.uniformMatrix4fv(shader.uModelMatrixLocation, false, stack.matrix);
-
     // drawing the static elements (ground, lamps ,track and buldings)
     if(use_color){
-        gl.uniform1i(shader.uMaterialLocation.is_solid_color, 0);
+        gl.uniform1i(shader.uMaterialLocation.is_solid_color, 0); // si texture
         gl.uniform4fv(shader.uMaterialLocation.specularColor, [ 0, 0, 0, 1 ]);
     }
 
@@ -256,11 +253,11 @@ Renderer.drawShadowmaps = function(){
     );
     
     Renderer.drawScene();
-  
+
     /* left headlight shadowmap */
     gl.bindFramebuffer(gl.FRAMEBUFFER, Renderer.leftHeadlightShadowMapFramebuffer);
     gl.clear(gl.DEPTH_BUFFER_BIT);
-  
+
     gl.viewport(0, 0, Renderer.headlightShadowMapResolution[0], Renderer.headlightShadowMapResolution[1]);
     
     gl.uniformMatrix4fv(Renderer.shadowMapShader.uMatrixLocation, false,
@@ -270,7 +267,7 @@ Renderer.drawShadowmaps = function(){
             Renderer.headlights["left"].matrix()
         )
     );
-    
+
     Renderer.drawScene();
   
     /* right headlight shadowmap */
@@ -326,7 +323,6 @@ Renderer.update = function(){
         }
     }    
 }
-
 
 Renderer.display = function(){
     var gl = Renderer.gl;
@@ -444,17 +440,22 @@ Renderer.setupAndStart = function (){
     Renderer.shadowMapResolution = [4096, 4096];
     Renderer.shadowMapFramebuffer = makeFramebuffer(Renderer.gl, Renderer.shadowMapResolution);
 
+    // ortogonale: raggi di luce paralleli
     Renderer.shadowMapProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), -150, 150, -120, 120, 30, 350);
-    Renderer.shadowMapViewMatrix = glMatrix.mat4.lookAt(
+
+    // frame vista: da coordinate vista a coordinate mondo
+    // inv frame di vista: da coordinate mondo a coordinate vista
+    Renderer.shadowMapViewMatrix = glMatrix.mat4.lookAt( // restituisce inv frame di vista
         glMatrix.mat4.create(),
+        // riscalo direzione luce per allontanare il "punto" luce dal centro del mondo
         glMatrix.vec3.scale(glMatrix.vec3.create(), Game.scene.weather.sunLightDirection, 100),
-        [0, 0, 0],
-        [0, 1, 0]
+        [0, 0, 0], // view direction
+        [0, 1, 0] // up vector
     );
 
     /* load textures */
-    Renderer.ground_texture        = load_texture(gl, "../common/textures/street5.png", 0);
-    Renderer.ground_texture_normal = load_texture(gl, "../common/textures/asphalt_normal_map.jpg", 1);
+    Renderer.ground_texture        = load_texture(gl, "../common/textures/street5.png", 0); // campo 0 -> texture
+    Renderer.ground_texture_normal = load_texture(gl, "../common/textures/asphalt_normal_map.jpg", 1); // campo 1 -> normali
     Renderer.facade1_texture       = load_texture(gl, "../common/textures/facade1.jpg", 0);
     Renderer.facade2_texture       = load_texture(gl, "../common/textures/facade2.jpg", 0);
     Renderer.facade3_texture       = load_texture(gl, "../common/textures/facade3.jpg", 0);

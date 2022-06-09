@@ -19,8 +19,9 @@ return `
 
     varying vec4 vShadowMapPosition;
 
-    void main(void)
-    {
+    void main(void){
+        // ogni vertice ha le coordinate texture. Ogni fragmento avrà le coordinate 
+        // texture grazie all'interpolazione effettuata durante la rasterizzazione
         vUVCoords = vec2(aUVCoords.x, aUVCoords.y);
 
         vWorldPos = uModelMatrix * vec4(aPosition, 1.0);
@@ -30,6 +31,7 @@ return `
         vLeftHeadlightPosition = (uLeftHeadlightMatrix * vWorldPos);
         vRightHeadlightPosition = (uRightHeadlightMatrix * vWorldPos);
 
+        // shadow mapping luce solare (vShadowMapPosition è il punto "di vista" della luce)
         vShadowMapPosition = (uShadowMapMatrix * vWorldPos) * 0.5 + 0.5;
     }
 `;
@@ -112,58 +114,78 @@ return `
     uniform vec3 uViewDirection;
     uniform mat4 uModelMatrix;
 
-    vec3 computeNormal(material mat)
-    {
-        if(mat.has_normal_map)   
-        {
-            vec3 x_axis = normalize(  dFdx(vWorldPos.xyz)  );
-            vec3 z_axis = normalize(  dFdy(vWorldPos.xyz)  );
-            vec3 y_axis = normalize(  cross( x_axis, z_axis )  );
-            z_axis = normalize(  cross( x_axis, y_axis )  );
 
-            mat3 matrix;
+    /**
+     * Calcola la normale della superficie relativa al fragment in spazio mondo 
+    */
+    vec3 computeNormal(material mat){
+        if(mat.has_normal_map){
+            // dFdx(pos) and dFdy(pos) are tangent to the surface -> their cross product is orthogonal to it
+            vec3 x_axis = normalize(  dFdx(vWorldPos.xyz)  ); // tangent to the surface 
+            vec3 z_axis = normalize(  dFdy(vWorldPos.xyz)  ); // tangent to the surface
+            vec3 y_axis = normalize(  cross( x_axis, z_axis )  ); // ortogonale al piano x_axis, z_axis
+            
+            // x_axis e z_axis non ortogonali tra loro
+            // li voglio ortogonali perchè voglio il frame (matrix) ortogonale
+            z_axis = normalize(  cross( x_axis, y_axis )  ); // ortogonale al piano x_axis, y_axis
+
+            mat3 matrix; // il frame ortogonale desiderato
             matrix[0] = x_axis;
             matrix[1] = y_axis;
             matrix[2] = z_axis;
             return matrix * ( texture2D(mat.normalMap, vUVCoords * 2.0).xyz * 2.0 - 1.0 ).xzy;
-        }
-        else
-        {
+        }else{
+            // dFdx(pos) and dFdy(pos) are tangent to the surface -> their cross product is orthogonal to it
             return normalize(  cross( dFdx(vWorldPos.xyz), dFdy(vWorldPos.xyz) )  );
         }
     }
 
-    vec4 getDiffuseColor(material mat)
-    {
+    /**
+     * Ottieni il colore dalla texture o no
+     */
+    vec4 getDiffuseColor(material mat){
         if( mat.solid_color )
             return mat.diffuseColor;
         else
             return texture2D(mat.texture, vUVCoords);
     }
 
-    vec4 computeDiffuseColor(vec3 currNormal, vec3 lightDirection, vec4 lightColor, float lightIntensity, vec4 diffuseColor)
-    {
-        float diffuseDot = dot( lightDirection, currNormal );
+    /**
+     * Calcola componente diffusiva data luce (direzione, colore, intensità)
+     * (Phong)
+     */ 
+    vec4 computeDiffuseColor(vec3 currNormal, vec3 lightDirection, vec4 lightColor, float lightIntensity, vec4 diffuseColor){
+        float diffuseDot = dot( lightDirection, currNormal ); // cos(angolo tra sunDirection e normale alla superficie)
         if(diffuseDot > 0.0)
+            // superficie con normale currNormal non è in ombra rispetto al sole
+            // Diffuse reflection term: formula a slide 54 lezione 10 (Lighting)
             return vec4( (diffuseColor.xyz * lightColor.xyz) * (lightIntensity * diffuseDot), 1.0 );
         else
+            // superficie con normale currNormal è in ombra rispetto al sole
             return vec4(0.0, 0.0, 0.0, 1.0);
     }
 
-    vec4 computeSpecularColor(vec3 currNormal, vec3 lightDirection, vec4 lightColor, float lightIntensity, vec4 specularColor)
-    {
+    /**
+     * Calcola componente specular data luce (direzione, colore, intensità)
+     * (Blinn-Phong)
+     */ 
+    vec4 computeSpecularColor(vec3 currNormal, vec3 lightDirection, vec4 lightColor, float lightIntensity, vec4 specularColor){
+        // introdotto a slide 67 lezione 10 (Lighting)
         vec3 halfwayVector = normalize( lightDirection + uViewDirection );
         float specularDot = dot( halfwayVector, currNormal );
         if(specularDot > 0.0){ // stiamo guardando la superficie da davanti
-            specularDot = pow(  specularDot, uMaterial.specularGlossiness  );
+            specularDot = pow(  specularDot, uMaterial.specularGlossiness  ); // cos(alfa) ^n
+            // Specular reflection term: formula a slide 68 lezione 10 (Lighting)
             return vec4( specularColor.xyz * lightColor.xyz * specularDot * lightIntensity, 1.0 );
         }
         else // stiamo guardando la superficie da dietro
             return vec4(0.0, 0.0, 0.0, 1.0);
     }
 
-    vec4 computeSunColor(vec3 currNormal, vec3 lightDirection, vec4 lightColor, float lightIntensity, vec4 materialDiffuseColor, vec4 materialSpecularColor)
-    {
+    /**
+     * Calcola somma tra diffuse reflection e specular reflection (Phong)
+     */ 
+    vec4 computeSunColor(vec3 currNormal, vec3 lightDirection, vec4 lightColor, float lightIntensity, vec4 materialDiffuseColor, vec4 materialSpecularColor){
         vec4 diffuseColor = computeDiffuseColor(currNormal, lightDirection, lightColor, lightIntensity, materialDiffuseColor);
         vec4 specularColor = computeSpecularColor(currNormal, lightDirection, lightColor, lightIntensity, materialSpecularColor);
         return diffuseColor + specularColor;
@@ -238,8 +260,8 @@ return `
             return 0.0;
     }
 
-    float inLight(sampler2D shadowmap, float current_depth, vec2 shadowmap_uv, float bias)
-    {
+    
+    float inLight(sampler2D shadowmap, float current_depth, vec2 shadowmap_uv, float bias){
         float inLight = isInLight( shadowmap, current_depth, shadowmap_uv, bias );
 
         float count = 1.0;
@@ -266,8 +288,9 @@ return `
         vec4 ambientColor = vec4(uAmbientColor.xyz * currDiffuseColor.xyz, 1.0);
         vec4 emissiveColor = vec4(uMaterial.emissiveColor.xyz, 1.0);
         
-        vec2 shadowMapUV = vShadowMapPosition.xy / vShadowMapPosition.w; 
-        float shadowMapDepth = vShadowMapPosition.z / vShadowMapPosition.w;
+        // 
+        vec2 shadowMapUV = vShadowMapPosition.xy / vShadowMapPosition.w; // a quale punto accedere della shadow map
+        float shadowMapDepth = vShadowMapPosition.z / vShadowMapPosition.w; // profondità del frammento rispetto alla luce
         vec4 lightColorSum =
             computeSunColor(currNormal, uSunLight.direction, uSunLight.color, uSunLight.intensity, currDiffuseColor, uMaterial.specularColor)
             * inLight(uShadowMapTexture, shadowMapDepth, shadowMapUV, 0.0001);
@@ -284,6 +307,7 @@ return `
                 uSpotLights[i].openingAngle, uSpotLights[i].cutoffAngle, uSpotLights[i].strength,
                 currDiffuseColor, uMaterial.specularColor);
         }
+
 
         vec2 leftHeadlightUV = (vLeftHeadlightPosition.xy / vLeftHeadlightPosition.w) * 0.5 + 0.5;
         float leftHeadlightDepth = (vLeftHeadlightPosition.z / vLeftHeadlightPosition.w) * 0.5 + 0.5;

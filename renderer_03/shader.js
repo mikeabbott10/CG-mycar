@@ -77,23 +77,23 @@ uniformShader = function (gl)
     //set defaults
     gl.useProgram(shaderProgram);
     gl.uniform1i(shaderProgram.uMaterialLocation.is_solid_color, 1);
-    gl.uniform4fv(shaderProgram.uMaterialLocation.diffuseColor, [ 0, 0, 0, 1 ]);
-    gl.uniform1i(shaderProgram.uMaterialLocation.diffuseTexture, 0);
+    gl.uniform4fv(shaderProgram.uMaterialLocation.diffuseColor, [ 0, 0, 0, 1 ]); // fixed
+    gl.uniform1i(shaderProgram.uMaterialLocation.diffuseTexture, 0); // campo 0 contiene il colore // fixed
 
     gl.uniform4fv(shaderProgram.uMaterialLocation.specularColor, [ 1, 1, 1, 1 ]);
-    gl.uniform1f(shaderProgram.uMaterialLocation.specularGlossiness, 10.0);
+    gl.uniform1f(shaderProgram.uMaterialLocation.specularGlossiness, 10.0); // fixed
 
-    gl.uniform4fv(shaderProgram.uMaterialLocation.emissiveColor, [ 0, 0, 0, 1 ]);
+    gl.uniform4fv(shaderProgram.uMaterialLocation.emissiveColor, [ 0, 0, 0, 0 ]); // fixed (tutti i materiali hanno lo stesso emissive color)
 
     gl.uniform1i(shaderProgram.uMaterialLocation.has_normal_map, 0);
-    gl.uniform1i(shaderProgram.uMaterialLocation.normalMap, 1);
+    gl.uniform1i(shaderProgram.uMaterialLocation.normalMap, 1); // campo 1 contiene le normali // fixed
 
-    gl.uniform4fv(shaderProgram.uAmbientColorLocation, [ 0.1, 0.1, 0.1, 1 ]);
+    gl.uniform4fv(shaderProgram.uAmbientColorLocation, [ 0.1, 0.1, 0.1, 1 ]); // fixed
     gl.uniform3fv(shaderProgram.uViewDirectionLocation, [ 1, 0, 0 ]);
 
     //fill sunlight uniforms
     gl.uniform3fv(shaderProgram.uSunLocation.direction, [ 0, 1, 0 ]);
-    gl.uniform4fv(shaderProgram.uSunLocation.color, [ 1, 0.8, 0.8, 1 ]);
+    gl.uniform4fv(shaderProgram.uSunLocation.color, [ 1, 0.8, 0.8, 1 ]); // fixed
     gl.uniform1f(shaderProgram.uSunLocation.intensity, 1.0);
 
     //fill pointlight uniforms
