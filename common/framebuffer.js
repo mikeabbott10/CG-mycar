@@ -1,20 +1,20 @@
-makeFramebuffer = function(gl, size)
-{
+makeFramebuffer = function(gl, size){
     var framebuffer = gl.createFramebuffer();
 
     framebuffer.depth_texture = make_empty_depth_texture(gl, size, 0);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    // specify a texture attachment
     gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
-        gl.DEPTH_ATTACHMENT,
-        gl.TEXTURE_2D,
-        framebuffer.depth_texture,
-        0);
+        gl.FRAMEBUFFER, // target
+        gl.DEPTH_ATTACHMENT, // attachment point <- cosa rimpiazzare dello screen buffer
+        gl.TEXTURE_2D, // texture target
+        framebuffer.depth_texture, // created texture
+        0 // mip level
+    );
 
     let status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-    if (status != gl.FRAMEBUFFER_COMPLETE)
-    {
+    if (status != gl.FRAMEBUFFER_COMPLETE){
         var str = "Unable to initialize the framebuffer.\n\n";
         if(status == gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT)
             str += "Incomplete Attachment";
@@ -24,6 +24,6 @@ makeFramebuffer = function(gl, size)
     }
         
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); // unbind
     return framebuffer;
 }

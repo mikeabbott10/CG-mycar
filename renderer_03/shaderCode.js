@@ -1,6 +1,9 @@
 vertexShaderSource = function()
 {
 return `
+    /*
+    uniform variables contain read-only data shared from WebGL/OpenGL environment to a vertex shader or fragment shader.
+    */
     uniform mat4 uModelMatrix;
     uniform mat4 uViewMatrix;
     uniform mat4 uProjectionMatrix;
@@ -8,9 +11,17 @@ return `
     uniform mat4 uRightHeadlightMatrix;
     uniform mat4 uShadowMapMatrix;
 
+    /*
+    attribute read-only variables containing data shared from WebGL/OpenGL environment to the vertex shader.
+    */
     attribute vec3 aPosition;
     attribute vec2 aUVCoords;
 
+    /*
+    varying variables contain data shared from a vertex shader to a fragment shader.
+    The variable must be written in the vertex shader and the read-only value in the fragment shader is 
+    then interpolated from the vertices which make up the fragment.
+    */
     varying vec4 vWorldPos;
     varying vec2 vUVCoords;
 
@@ -28,8 +39,9 @@ return `
         gl_Position = uProjectionMatrix * uViewMatrix * vWorldPos;
 
         // vertice visto dal punto di vista della luce
-        vLeftHeadlightPosition = (uLeftHeadlightMatrix * vWorldPos);
-        vRightHeadlightPosition = (uRightHeadlightMatrix * vWorldPos);
+        // vLeftHeadlightPosition è il punto "di vista" della luce
+        vLeftHeadlightPosition = (uLeftHeadlightMatrix * vWorldPos); // frame del faro sinistro nel mondo
+        vRightHeadlightPosition = (uRightHeadlightMatrix * vWorldPos); // frame del faro destro nel mondo
 
         // shadow mapping luce solare (vShadowMapPosition è il punto "di vista" della luce)
         vShadowMapPosition = (uShadowMapMatrix * vWorldPos) * 0.5 + 0.5;
@@ -108,7 +120,6 @@ return `
     uniform material uMaterial;
     uniform vec4 uAmbientColor;
     uniform sunLight uSunLight;
-    //uniform pointLight uPointLights[pointLightCount];
     uniform spotLight uSpotLights[spotLightCount];
 
     uniform vec3 uViewDirection;
@@ -155,7 +166,7 @@ return `
      * (Phong)
      */ 
     vec4 computeDiffuseColor(vec3 currNormal, vec3 lightDirection, vec4 lightColor, float lightIntensity, vec4 diffuseColor){
-        float diffuseDot = dot( lightDirection, currNormal ); // cos(angolo tra sunDirection e normale alla superficie)
+        float diffuseDot = dot( lightDirection, currNormal ); // cos(angolo tra direzione della luce e normale alla superficie)
         if(diffuseDot > 0.0)
             // superficie con normale currNormal non è in ombra rispetto al sole
             // Diffuse reflection term: formula a slide 54 lezione 10 (Lighting)
@@ -185,46 +196,42 @@ return `
     /**
      * Calcola somma tra diffuse reflection e specular reflection (Phong)
      */ 
-    vec4 computeSunColor(vec3 currNormal, vec3 lightDirection, vec4 lightColor, float lightIntensity, vec4 materialDiffuseColor, vec4 materialSpecularColor){
+    vec4 computeLightColor(vec3 currNormal, vec3 lightDirection, vec4 lightColor, float lightIntensity, vec4 materialDiffuseColor, vec4 materialSpecularColor){
         vec4 diffuseColor = computeDiffuseColor(currNormal, lightDirection, lightColor, lightIntensity, materialDiffuseColor);
         vec4 specularColor = computeSpecularColor(currNormal, lightDirection, lightColor, lightIntensity, materialSpecularColor);
         return diffuseColor + specularColor;
     }
 
-    vec3 computePointDirection(vec3 currNormal, vec3 position)
-    {
+    // calcolo direzione vettore da position al frammento corrente
+    vec3 computePointDirection(vec3 position){
         return normalize( position - vWorldPos.xyz );
     }
 
-    float computePointDistance(vec3 worldPos, vec3 position)
-    {
-        return length( position - worldPos );
+    // calcolo lunghezza vettore da position al frammento corrente
+    float computePointDistance(vec3 position){
+        return length( position - vWorldPos.xyz );
     }
 
+    /**
+     * Calcolo attenuazione in base alla distanza dal punto luce
+     */ 
     vec4 computeAttenuatedColor(vec3 currNormal, vec3 lightDirection, vec4 lightColor, float lightIntensity,
-        float lightDistance, vec4 materialDiffuseColor, vec4 materialSpecularColor)
-    {
-        vec4 sunColor = computeSunColor(currNormal, lightDirection, lightColor, lightIntensity, materialDiffuseColor, materialSpecularColor);
+                float lightDistance, vec4 materialDiffuseColor, vec4 materialSpecularColor){
+        vec4 mLightColor = computeLightColor(currNormal, lightDirection, lightColor, lightIntensity, materialDiffuseColor, materialSpecularColor);
 
         float attenuation = min( 1.0 / (lightDistance * lightDistance), 1.0 );
-        return sunColor * attenuation;
+        return mLightColor * attenuation;
     }
 
-    vec4 computePointColor(vec3 currNormal, vec3 lightPosition, vec4 lightColor, float lightIntensity,
-        vec4 materialDiffuseColor, vec4 materialSpecularColor)
-    {
-        vec3 lightDirection = computePointDirection(currNormal, lightPosition);
-        float lightDistance = computePointDistance(vWorldPos.xyz, lightPosition);
-        return computeAttenuatedColor(currNormal, lightDirection, lightColor, lightIntensity,
-            lightDistance, materialDiffuseColor, materialSpecularColor);
-    }
-
+    /**
+     * Calcolo colore frammento dovuto ad uno spotlight fissato
+     */ 
     vec4 computeSpotColor(vec3 currNormal, vec3 lightPosition, vec3 spotDirection, vec4 lightColor, float lightIntensity,
-        float spotOpeningAngle, float spotCutoffAngle, float spotStrength,
-        vec4 materialDiffuseColor, vec4 materialSpecularColor)
-    {
-        vec3 lightDirection = computePointDirection(currNormal, lightPosition);
-        float lightDistance = computePointDistance(vWorldPos.xyz, lightPosition);
+                float spotOpeningAngle, float spotCutoffAngle, float spotStrength,
+                vec4 materialDiffuseColor, vec4 materialSpecularColor){
+
+        vec3 lightDirection = computePointDirection(lightPosition);
+        float lightDistance = computePointDistance(lightPosition);
         vec4 attenuatedColor = computeAttenuatedColor(currNormal, lightDirection, lightColor, lightIntensity,
             lightDistance, materialDiffuseColor, materialSpecularColor);
 
@@ -238,37 +245,40 @@ return `
         return attenuatedColor * attenuation;
     }
 
-    vec4 computeHeadlightColor(vec2 headlightUV, float distance)
-    {
-        if(  distance > 0.0 && all(greaterThanEqual( headlightUV, vec2(0.0, 0.0) )) && all(lessThanEqual( headlightUV, vec2(1.0, 1.0) ))  )
-        {
+    vec4 computeHeadlightColor(vec2 headlightUV, float distance){
+        if(  distance > 0.0 
+                    && all(greaterThanEqual( headlightUV, vec2(0.1, 0.1) )) 
+                    && all(lessThanEqual( headlightUV, vec2(0.9, 0.9) ))  ){
+            // fragment si trova nel cono di luce del faro
             return texture2D(uHeadlightTexture, headlightUV);
         }
-        else
-        {
+        else{
             return vec4(0.0, 0.0, 0.0, 0.0);
         }
     }
 
     //shadowmap functions
-    float isInLight(sampler2D shadowmap, float current_depth, vec2 shadowmap_uv, float bias)
-    {
-        float shadowmap_z = texture2D(shadowmap, shadowmap_uv).r;
-        if( current_depth - bias < shadowmap_z)
+    /**
+     * ACNE slide 26 lezione 17-18 Shadows
+     */
+    float isInLight(sampler2D shadowmap, float current_depth, vec2 shadowmap_uv, float bias){
+        float shadowmap_z = texture2D(shadowmap, shadowmap_uv).r;  // distanza dalla luce al primo ostacolo
+        if( current_depth - bias < shadowmap_z) // bias evita ACNE rilassando la disequazione
             return 1.0;
         else
             return 0.0;
     }
 
     
+    /**
+     * PCF slide 39 lezione 17-18 Shadows
+     */
     float inLight(sampler2D shadowmap, float current_depth, vec2 shadowmap_uv, float bias){
         float inLight = isInLight( shadowmap, current_depth, shadowmap_uv, bias );
 
         float count = 1.0;
-        for(float dy = -0.0001; dy <= 0.0001; dy += 0.00004)
-        {
-            for(float dx = -0.0001; dx <= 0.0001; dx += 0.00004)
-            {
+        for(float dy = -0.0001; dy <= 0.0001; dy += 0.00004){
+            for(float dx = -0.0001; dx <= 0.0001; dx += 0.00004){
                 inLight = inLight + isInLight( shadowmap, current_depth, shadowmap_uv + vec2(dx, dy), bias );
                 count += 1.0;
             }
@@ -289,28 +299,22 @@ return `
         vec4 emissiveColor = vec4(uMaterial.emissiveColor.xyz, 1.0);
         
         // 
-        vec2 shadowMapUV = vShadowMapPosition.xy / vShadowMapPosition.w; // a quale punto accedere della shadow map
-        float shadowMapDepth = vShadowMapPosition.z / vShadowMapPosition.w; // profondità del frammento rispetto alla luce
+        vec2 shadowMapUV = vShadowMapPosition.xy / vShadowMapPosition.w; // coordinate in shadowmap relativa al punto di vista del sole
+        float shadowMapDepth = vShadowMapPosition.z / vShadowMapPosition.w; // profondità del frammento rispetto alla luce del sole
         vec4 lightColorSum =
-            computeSunColor(currNormal, uSunLight.direction, uSunLight.color, uSunLight.intensity, currDiffuseColor, uMaterial.specularColor)
+            computeLightColor(currNormal, uSunLight.direction, uSunLight.color, uSunLight.intensity, currDiffuseColor, uMaterial.specularColor)
             * inLight(uShadowMapTexture, shadowMapDepth, shadowMapUV, 0.0001);
 
-        /*for(int i = 0; i < pointLightCount; i++)
-        {
-            lightColorSum = lightColorSum + computePointColor(currNormal, uPointLights[i].position, uPointLights[i].color, uPointLights[i].intensity, currDiffuseColor, uMaterial.specularColor);
-        }*/
-
-        for(int i = 0; i < spotLightCount; i++)
-        {
+        for(int i = 0; i < spotLightCount; i++){
             lightColorSum = lightColorSum + computeSpotColor(currNormal,
                 uSpotLights[i].position, uSpotLights[i].direction, uSpotLights[i].color, uSpotLights[i].intensity,
                 uSpotLights[i].openingAngle, uSpotLights[i].cutoffAngle, uSpotLights[i].strength,
                 currDiffuseColor, uMaterial.specularColor);
         }
 
-
-        vec2 leftHeadlightUV = (vLeftHeadlightPosition.xy / vLeftHeadlightPosition.w) * 0.5 + 0.5;
-        float leftHeadlightDepth = (vLeftHeadlightPosition.z / vLeftHeadlightPosition.w) * 0.5 + 0.5;
+        // fari macchina
+        vec2 leftHeadlightUV = (vLeftHeadlightPosition.xy / vLeftHeadlightPosition.w) * 0.5 + 0.5; // coordinate in shadowmap relativa al punto di vista del faro sx
+        float leftHeadlightDepth = (vLeftHeadlightPosition.z / vLeftHeadlightPosition.w) * 0.5 + 0.5; // profondità del frammento rispetto alla luce del faro sx
         vec4 leftHeadlightColor = clamp(
                 computeHeadlightColor(leftHeadlightUV, vLeftHeadlightPosition.z) *
                 isInLight(uLeftHeadlightShadowMapTexture, leftHeadlightDepth, leftHeadlightUV, 0.003) *

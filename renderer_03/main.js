@@ -13,8 +13,6 @@ Renderer.loadLights = function()
     );
     
     gl.uniform1f(shader.uSunLocation.intensity, 1.0);
-    for(var i = 0; i < Game.scene.lamps.length; i++)
-        gl.uniform1f(shader.uSpotLightLocation[i].intensity, 10);
 
     for(var i = 0; i < Game.scene.lamps.length; i++){
         var lampPosition = glMatrix.vec3.clone(Game.scene.lamps[i].position);
@@ -43,8 +41,7 @@ Renderer.initializeObjects = function()
     }
 };
 
-Renderer.startDrawScene = function ()
-{
+Renderer.startDrawScene = function (){
     var gl = Renderer.gl;
     var shader = Renderer.currentShader;
     var stack = Renderer.stack;
@@ -58,7 +55,7 @@ Renderer.startDrawScene = function ()
     //update cameras and build matrices
     let proj_matrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),3.14 / 4, ratio, 1, 500);
     Renderer.cameras[Renderer.currentCamera].update(this.car.position, this.car.direction, this.car.frame);
-    var invV = Renderer.cameras[Renderer.currentCamera].matrix();
+    var invV = Renderer.cameras[Renderer.currentCamera].matrix(); // get user pov viewMatrix
     var view = Renderer.cameras[Renderer.currentCamera].view_direction(); // usato per il calcolo della componente speculare della luce
 
     // Clear the framebuffer
@@ -67,8 +64,8 @@ Renderer.startDrawScene = function ()
 
     //draw cubemap
     gl.useProgram(Renderer.skyboxShader);
-    gl.depthMask(false);
-    gl.cullFace(gl.FRONT);
+    gl.depthMask(false); // writing into the depth buffer is disabled
+    gl.cullFace(gl.FRONT); // front faces non considerate
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, Renderer.skybox_texture);
@@ -78,11 +75,11 @@ Renderer.startDrawScene = function ()
 
     drawObject(Renderer.skyboxCube, [], Renderer.gl, Renderer.skyboxShader, false);
 
-    gl.cullFace(gl.BACK);
+    gl.cullFace(gl.BACK); // back faces non considerate
     gl.useProgram(null);
 
     //start draw scene
-    gl.depthMask(true);
+    gl.depthMask(true); // writing into the depth buffer is enabled
     gl.useProgram(shader);
 
     gl.uniformMatrix4fv(shader.uProjectionMatrixLocation, false, proj_matrix);
@@ -203,8 +200,6 @@ Renderer.drawScene = function ()
     // buildings
     if(use_color){
         gl.uniform1i(shader.uMaterialLocation.has_normal_map, 0);
-    }
-    if(use_color){
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, Renderer.facade2_texture);
     }
@@ -233,17 +228,16 @@ Renderer.drawShadowmaps = function(){
     var height = Renderer.canvas.height
     var ratio = width / height;
   
-    //draw scene on framebuffer
+    // draw scene on framebuffer
     Renderer.currentShader = Renderer.shadowMapShader;
     Renderer.useColor = false;
   
     gl.useProgram(Renderer.shadowMapShader);
     
+    // shadowMap relativa al sole
     gl.bindFramebuffer(gl.FRAMEBUFFER, Renderer.shadowMapFramebuffer);
-    gl.clear(gl.DEPTH_BUFFER_BIT);
-  
+    gl.clear(gl.DEPTH_BUFFER_BIT); // clears buffers to preset values.
     gl.viewport(0, 0, Renderer.shadowMapResolution[0], Renderer.shadowMapResolution[1]);
-    
     gl.uniformMatrix4fv(Renderer.shadowMapShader.uMatrixLocation, false,
         glMatrix.mat4.mul(
             glMatrix.mat4.create(),
@@ -251,15 +245,12 @@ Renderer.drawShadowmaps = function(){
             Renderer.shadowMapViewMatrix
         )
     );
-    
     Renderer.drawScene();
 
-    /* left headlight shadowmap */
+    // shadowMap relativa al faro sinistro
     gl.bindFramebuffer(gl.FRAMEBUFFER, Renderer.leftHeadlightShadowMapFramebuffer);
-    gl.clear(gl.DEPTH_BUFFER_BIT);
-
+    gl.clear(gl.DEPTH_BUFFER_BIT); // clears buffers to preset values
     gl.viewport(0, 0, Renderer.headlightShadowMapResolution[0], Renderer.headlightShadowMapResolution[1]);
-    
     gl.uniformMatrix4fv(Renderer.shadowMapShader.uMatrixLocation, false,
         glMatrix.mat4.mul(
             glMatrix.mat4.create(),
@@ -267,15 +258,12 @@ Renderer.drawShadowmaps = function(){
             Renderer.headlights["left"].matrix()
         )
     );
-
     Renderer.drawScene();
   
-    /* right headlight shadowmap */
+    // shadowMap relativa al faro destro
     gl.bindFramebuffer(gl.FRAMEBUFFER, Renderer.rightHeadlightShadowMapFramebuffer);
-    gl.clear(gl.DEPTH_BUFFER_BIT);
-  
+    gl.clear(gl.DEPTH_BUFFER_BIT); // clears buffers to preset values.
     gl.viewport(0, 0, Renderer.headlightShadowMapResolution[0], Renderer.headlightShadowMapResolution[1]);
-    
     gl.uniformMatrix4fv(Renderer.shadowMapShader.uMatrixLocation, false,
         glMatrix.mat4.mul(
             glMatrix.mat4.create(),
@@ -283,12 +271,10 @@ Renderer.drawShadowmaps = function(){
             Renderer.headlights["right"].matrix()
         )
     );
-    
     Renderer.drawScene();
   
     gl.useProgram(null);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
 }
 
 /**
@@ -330,10 +316,10 @@ Renderer.display = function(){
     var height = Renderer.canvas.height;
     var ratio = width / height;
 
-    Renderer.update();
-    Renderer.drawShadowmaps();
+    Renderer.update(); // update pov
+    Renderer.drawShadowmaps(); // up
 
-    //draw scene with normal shader
+    // draw scene with uniform shader
     Renderer.currentShader = Renderer.uniformShader;
     Renderer.useColor = true;
     Renderer.startDrawScene();
@@ -427,7 +413,8 @@ Renderer.setupAndStart = function (){
 
     /* setup headlights for the car and shadowmap framebuffers */
     Renderer.headlights = {};
-    Renderer.headlightProjectionMatrix = glMatrix.mat4.perspective( glMatrix.mat4.create(), 0.35, 1, 1, 500 );
+    // glMatrix.mat4.perspective: generates a perspective projection matrix with the given bounds
+    Renderer.headlightProjectionMatrix = glMatrix.mat4.perspective( glMatrix.mat4.create(), 0.35, /*ratio*/1, /*near*/1, /*far*/500 );
     Renderer.headlights["left"] = new ChaseCamera([-0.7, 0.35, -4], [-0.55, 0.45, -2]);
     Renderer.headlights["right"] = new ChaseCamera([0.7, 0.35, -4], [0.55, 0.45, -2]);
 
@@ -441,10 +428,12 @@ Renderer.setupAndStart = function (){
     Renderer.shadowMapFramebuffer = makeFramebuffer(Renderer.gl, Renderer.shadowMapResolution);
 
     // ortogonale: raggi di luce paralleli
-    Renderer.shadowMapProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), -150, 150, -120, 120, 30, 350);
+    // glMatrix.mat4.ortho: generates a orthogonal projection matrix with the given bounds
+    Renderer.shadowMapProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), /*left*/-150, /*right*/150, /*bottom*/-120, /*top*/120, 30, 350);
 
     // frame vista: da coordinate vista a coordinate mondo
     // inv frame di vista: da coordinate mondo a coordinate vista
+    // Renderer.shadowMapViewMatrix è la matrice di vista dal "punto" di vista del sole
     Renderer.shadowMapViewMatrix = glMatrix.mat4.lookAt( // restituisce inv frame di vista
         glMatrix.mat4.create(),
         // riscalo direzione luce per allontanare il "punto" luce dal centro del mondo

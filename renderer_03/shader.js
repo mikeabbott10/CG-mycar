@@ -104,12 +104,12 @@ uniformShader = function (gl)
         // gl.uniform1f(shaderProgram.uPointLightLocation[i].intensity, 0);
 
         gl.uniform3fv(shaderProgram.uSpotLightLocation[i].position, [ 0, 0, 0 ]);
-        gl.uniform3fv(shaderProgram.uSpotLightLocation[i].direction, [ 0, -1, 0 ]);
-        gl.uniform4fv(shaderProgram.uSpotLightLocation[i].color, [ 1, 1, 1, 1 ]);
-        gl.uniform1f(shaderProgram.uSpotLightLocation[i].intensity, 0);
-        gl.uniform1f(shaderProgram.uSpotLightLocation[i].openingAngle, glMatrix.glMatrix.toRadian(20));
-        gl.uniform1f(shaderProgram.uSpotLightLocation[i].cutoffAngle, glMatrix.glMatrix.toRadian(45));
-        gl.uniform1f(shaderProgram.uSpotLightLocation[i].strength, 3);
+        gl.uniform3fv(shaderProgram.uSpotLightLocation[i].direction, [ 0, -1, 0 ]); //fixed
+        gl.uniform4fv(shaderProgram.uSpotLightLocation[i].color, [ 1, 1, 1, 1 ]); //fixed
+        gl.uniform1f(shaderProgram.uSpotLightLocation[i].intensity, 10); //fixed
+        gl.uniform1f(shaderProgram.uSpotLightLocation[i].openingAngle, glMatrix.glMatrix.toRadian(20)); //fixed
+        gl.uniform1f(shaderProgram.uSpotLightLocation[i].cutoffAngle, glMatrix.glMatrix.toRadian(50)); //fixed
+        gl.uniform1f(shaderProgram.uSpotLightLocation[i].strength, 3); //fixed
     }
 
     //fill headlights uniforms

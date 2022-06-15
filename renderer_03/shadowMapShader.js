@@ -17,31 +17,28 @@ shadowMapShader = function (gl)
     return shaderProgram;
 };
 
-shadowMapVertexShaderSource = function()
-{
-return `
-uniform mat4 uModelMatrix;
-uniform mat4 uMatrix;
+shadowMapVertexShaderSource = function(){
+    return `
+        uniform mat4 uModelMatrix;
+        uniform mat4 uMatrix;
 
-attribute vec3 aPosition;
-attribute vec2 aUVCoords;
+        attribute vec3 aPosition;
+        //attribute vec2 aUVCoords;
 
-void main(void)
-{
-    vec4 worldPos = uModelMatrix * vec4(aPosition, 1.0);
-    gl_Position = uMatrix * worldPos;
-}
-`;
+        void main(void){
+            vec4 worldPos = uModelMatrix * vec4(aPosition, 1.0);
+            gl_Position = uMatrix * worldPos; // projMatrix * viewMatrix * worldPos
+        }
+    `;
 }
 
-shadowMapFragmentShaderSource = function()
-{
-return `
-precision highp float;
+shadowMapFragmentShaderSource = function(){
+    return `
+        precision highp float;
 
-void main(void)                                
-{
-    
-}
-`;
+        void main(void)                                
+        {
+            
+        }
+    `;
 }

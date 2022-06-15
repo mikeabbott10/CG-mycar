@@ -48,13 +48,25 @@ make_empty_depth_texture = function(gl, size, texture_num)
     gl.activeTexture(gl.TEXTURE0 + texture_num);
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); // ripete "ultimo" valore sull'asse u (o s)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); // ripete "ultimo" valore sull'asse v (o t)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); // magnification: Bilinear Interpolation
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, size[0], size[1], 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, null);
+
+    // upload the image to the texture object
+    gl.texImage2D(
+        gl.TEXTURE_2D, 
+        0, // la texture che sto caricando corrisponde al livello 0 del mipmap
+        gl.DEPTH_COMPONENT, 
+        size[0], // width della texture
+        size[1], // height della texture
+        0, // width of the border. Must be 0.
+        gl.DEPTH_COMPONENT, // the format of the texel data (same as 3rd parameter)
+        gl.UNSIGNED_SHORT, // data type of the texel data
+        null
+    );
     
-    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindTexture(gl.TEXTURE_2D, null); //unbind
     return texture;
 }
 
@@ -80,23 +92,24 @@ make_cubemap = function (gl, posx, negx, posy, negy, posz, negz, texture_num)
     load_empty_texture(gl, gl.TEXTURE_CUBE_MAP_POSITIVE_Z, [1, 1], color);
     load_empty_texture(gl, gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, [1, 1], color);
 
-	gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+	gl.bindTexture(gl.TEXTURE_CUBE_MAP, null); // unbind
 
-    loadImages([posx, negx, posy, negy, posz, negz]).then(function(images)
-    {
-        gl.activeTexture(gl.TEXTURE0 + texture_num);
-        gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+    loadImages([posx, negx, posy, negy, posz, negz]).then(
+        function(images){
+            gl.activeTexture(gl.TEXTURE0 + texture_num);
+            gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
 
-        load_image_texture(gl, gl.TEXTURE_CUBE_MAP_POSITIVE_X, images[0], false);
-        load_image_texture(gl, gl.TEXTURE_CUBE_MAP_NEGATIVE_X, images[1], false);
-        load_image_texture(gl, gl.TEXTURE_CUBE_MAP_POSITIVE_Y, images[2], false);
-        load_image_texture(gl, gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, images[3], false);
-        load_image_texture(gl, gl.TEXTURE_CUBE_MAP_POSITIVE_Z, images[4], false);
-        load_image_texture(gl, gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, images[5], false);
-        gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
-        
-        gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
-    });
+            load_image_texture(gl, gl.TEXTURE_CUBE_MAP_POSITIVE_X, images[0], false);
+            load_image_texture(gl, gl.TEXTURE_CUBE_MAP_NEGATIVE_X, images[1], false);
+            load_image_texture(gl, gl.TEXTURE_CUBE_MAP_POSITIVE_Y, images[2], false);
+            load_image_texture(gl, gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, images[3], false);
+            load_image_texture(gl, gl.TEXTURE_CUBE_MAP_POSITIVE_Z, images[4], false);
+            load_image_texture(gl, gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, images[5], false);
+            gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+            
+            gl.bindTexture(gl.TEXTURE_CUBE_MAP, null); // unbind
+        }
+    );
 
 	return texture;
 }
