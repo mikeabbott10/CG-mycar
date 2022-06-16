@@ -167,7 +167,7 @@ Renderer.drawScene = function ()
 		var M_1_sca = glMatrix.mat4.create();
 	    glMatrix.mat4.fromScaling(M_1_sca,[0.05, 1.5, 0.05]);
 		stack_lamp.multiply(M_1_sca);
-	
+
 		gl.uniformMatrix4fv(shader.uModelMatrixLocation, false, stack_lamp.matrix);
 		//gl.uniformMatrix4fv(shader.uProjectionMatrixLocation, false, this.projectionMatrix);
         palo = new Cylinder(16);
@@ -179,16 +179,14 @@ Renderer.drawScene = function ()
     gl.uniformMatrix4fv(shader.uModelMatrixLocation, false, this.stack.matrix);
 
     // ground
-    if(use_color)
-    {
+    if(use_color){
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, Renderer.grass_tile_texture);
     }
     drawObject(Game.scene.groundObj, [0.3, 0.7, 0.2, 1.0], gl, shader, use_color);
-    
+
     // track
-    if(use_color)
-    {
+    if(use_color){
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, Renderer.ground_texture);
         gl.activeTexture(gl.TEXTURE1);
@@ -196,7 +194,7 @@ Renderer.drawScene = function ()
         gl.uniform1i(shader.uMaterialLocation.has_normal_map, 1);
     }
     drawObject(Game.scene.trackObj, [0.9, 0.8, 0.7, 1.0], gl, shader, use_color);
-    
+
     // buildings
     if(use_color){
         gl.uniform1i(shader.uMaterialLocation.has_normal_map, 0);
@@ -227,7 +225,7 @@ Renderer.drawShadowmaps = function(){
     var width = Renderer.canvas.width;
     var height = Renderer.canvas.height
     var ratio = width / height;
-  
+
     // draw scene on framebuffer
     Renderer.currentShader = Renderer.shadowMapShader;
     Renderer.useColor = false;
@@ -324,16 +322,18 @@ Renderer.display = function(){
     Renderer.useColor = true;
     Renderer.startDrawScene();
 
+    // sun
     gl.activeTexture(gl.TEXTURE3);
-    gl.bindTexture(gl.TEXTURE_2D, Renderer.shadowMapFramebuffer.depth_texture);
+    gl.bindTexture(gl.TEXTURE_2D, Renderer.shadowMapFramebuffer.depth_texture); // texture ha info su distanza dagli ostacoli
     gl.uniformMatrix4fv(Renderer.uniformShader.uShadowMapMatrixLocation, false,
         glMatrix.mat4.mul(
-        glMatrix.mat4.create(),
-        Renderer.shadowMapProjectionMatrix,
-        Renderer.shadowMapViewMatrix
+            glMatrix.mat4.create(),
+            Renderer.shadowMapProjectionMatrix,
+            Renderer.shadowMapViewMatrix
         )
     );
 
+    // faro sx
     gl.activeTexture(gl.TEXTURE4);
     gl.bindTexture(gl.TEXTURE_2D, Renderer.leftHeadlightShadowMapFramebuffer.depth_texture);
     gl.uniformMatrix4fv(Renderer.uniformShader.uLeftHeadlightMatrixLocation, false,
@@ -344,13 +344,14 @@ Renderer.display = function(){
         )
     );
 
+    // faro dx
     gl.activeTexture(gl.TEXTURE5);
     gl.bindTexture(gl.TEXTURE_2D, Renderer.rightHeadlightShadowMapFramebuffer.depth_texture);
     gl.uniformMatrix4fv(Renderer.uniformShader.uRightHeadlightMatrixLocation, false,
         glMatrix.mat4.mul(
-        glMatrix.mat4.create(),
-        Renderer.headlightProjectionMatrix,
-        Renderer.headlights["right"].matrix()
+            glMatrix.mat4.create(),
+            Renderer.headlightProjectionMatrix,
+            Renderer.headlights["right"].matrix()
         )
     );
 

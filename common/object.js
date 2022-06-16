@@ -45,8 +45,7 @@ createObjectBuffers = function (gl, obj, texCoords)
 };
 
 
-drawObject = function (obj, fillColor, gl, shader, use_color)
-{
+drawObject = function (obj, fillColor, gl, shader, use_color){
   if(use_color === undefined)
     use_color = true;
 
