@@ -48,16 +48,6 @@ uniformShader = function (gl)
         { location: "uShadowMapMatrixLocation", uniform: "uShadowMapMatrix" },
     ];
 
-    //point light uniforms
-    /*uniforms.push({ defineArray: "uPointLightLocation" });
-    for(var i = 0; i < Game.scene.lamps.length; i++)
-    {
-        uniforms.push({ array: "uPointLightLocation", defineIndex: i });
-        uniforms.push({ array: "uPointLightLocation", index: i, location: "position", uniform: "uPointLights[" + i + "].position" });
-        uniforms.push({ array: "uPointLightLocation", index: i, location: "color", uniform: "uPointLights[" + i + "].color" });
-        uniforms.push({ array: "uPointLightLocation", index: i, location: "intensity", uniform: "uPointLights[" + i + "].intensity" });
-    }*/
-
     //spotlight uniforms
     uniforms.push({ defineArray: "uSpotLightLocation" });
     for(var i = 0; i < Game.scene.lamps.length; i++)
@@ -94,20 +84,16 @@ uniformShader = function (gl)
     //fill sunlight uniforms
     gl.uniform3fv(shaderProgram.uSunLocation.direction, [ 0, 1, 0 ]);
     gl.uniform4fv(shaderProgram.uSunLocation.color, [ 1, 0.8, 0.8, 1 ]); // fixed
-    gl.uniform1f(shaderProgram.uSunLocation.intensity, 1.0);
+    gl.uniform1f(shaderProgram.uSunLocation.intensity, 1.0); // fixed
 
     //fill pointlight uniforms
     for(var i = 0; i < Game.scene.lamps.length; i++)
     {
-        // gl.uniform3fv(shaderProgram.uPointLightLocation[i].position, [ 0, 0, 0 ]);
-        // gl.uniform4fv(shaderProgram.uPointLightLocation[i].color, [ 1, 1, 1, 1 ]);
-        // gl.uniform1f(shaderProgram.uPointLightLocation[i].intensity, 0);
-
         gl.uniform3fv(shaderProgram.uSpotLightLocation[i].position, [ 0, 0, 0 ]);
         gl.uniform3fv(shaderProgram.uSpotLightLocation[i].direction, [ 0, -1, 0 ]); //fixed
         gl.uniform4fv(shaderProgram.uSpotLightLocation[i].color, [ 1, 1, 1, 1 ]); //fixed
-        gl.uniform1f(shaderProgram.uSpotLightLocation[i].intensity, 10); //fixed
-        gl.uniform1f(shaderProgram.uSpotLightLocation[i].openingAngle, glMatrix.glMatrix.toRadian(20)); //fixed
+        gl.uniform1f(shaderProgram.uSpotLightLocation[i].intensity, 10);
+        gl.uniform1f(shaderProgram.uSpotLightLocation[i].openingAngle, glMatrix.glMatrix.toRadian(85)); //fixed
         gl.uniform1f(shaderProgram.uSpotLightLocation[i].cutoffAngle, glMatrix.glMatrix.toRadian(50)); //fixed
         gl.uniform1f(shaderProgram.uSpotLightLocation[i].strength, 3); //fixed
     }

@@ -1,16 +1,18 @@
 var Renderer = {};
+var sun_i = 0;
+var sunDir;
 
-Renderer.loadLights = function()
-{
+Renderer.loadLights = function(){
     var gl = Renderer.gl;
     var shader = Renderer.uniformShader;
 
     gl.useProgram(shader);
 
-    gl.uniform3fv(
-        shader.uSunLocation.direction,
-        glMatrix.vec3.normalize(glMatrix.vec3.create(), Game.scene.weather.sunLightDirection)
-    );
+    // not static anymore
+    //gl.uniform3fv(
+    //    shader.uSunLocation.direction,
+    //    glMatrix.vec3.normalize(glMatrix.vec3.create(), sunDir/*Game.scene.weather.sunLightDirection*/)
+    //);
     
     gl.uniform1f(shader.uSunLocation.intensity, 1.0);
 
@@ -23,8 +25,7 @@ Renderer.loadLights = function()
     gl.useProgram(null);
 }
 
-Renderer.initializeObjects = function()
-{
+Renderer.initializeObjects = function(){
     var gl = Renderer.gl;
 
     Game.setScene(scene_0);
@@ -34,8 +35,7 @@ Renderer.initializeObjects = function()
 
     createObjectBuffers(gl, Game.scene.trackObj);
     createObjectBuffers(gl, Game.scene.groundObj);
-    for (var i = 0; i < Game.scene.buildings.length; ++i)
-    {
+    for (var i = 0; i < Game.scene.buildings.length; ++i){
         createObjectBuffers(gl, Game.scene.buildingsObjTex[i]);
         createObjectBuffers(gl, Game.scene.buildingsObjTex[i].roof);
     }
@@ -87,6 +87,19 @@ Renderer.startDrawScene = function (){
     gl.uniform3fv(shader.uViewDirectionLocation, view);
     gl.uniformMatrix4fv(shader.uViewMatrixLocation, false, invV);
     
+    // it's now dynamic.
+    // update sun direction
+    gl.uniform3fv(
+        shader.uSunLocation.direction,
+        glMatrix.vec3.normalize(glMatrix.vec3.create(), sunDir/*Game.scene.weather.sunLightDirection*/)
+    );
+    //console.log(glMatrix.vec3.dot(sunDir, [0,1,0]));
+    // switch lamps on/off depending on angle between sun direction and ground normal ([0,1,0])
+    let isLightEnough = glMatrix.vec3.dot(sunDir, [0,1,0]) > 0.2;
+    for(var i = 0; i < Game.scene.lamps.length; i++){
+        gl.uniform1f(Renderer.currentShader.uSpotLightLocation[i].intensity, isLightEnough? 0.0 : 10.0);
+    }
+
     // load the car headlights matrices and textures
     Renderer.headlights["left"].update(this.car.position, this.car.direction, this.car.frame);
     Renderer.headlights["right"].update(this.car.position, this.car.direction, this.car.frame);
@@ -111,7 +124,7 @@ Renderer.startDrawScene = function (){
     gl.bindTexture(gl.TEXTURE_2D, Renderer.headlight_texture);
 }
 
-Renderer.drawScene = function ()
+Renderer.drawScene = function (drawingSunShadowMap)
 {
     var gl = Renderer.gl;
     var shader = Renderer.currentShader;
@@ -183,7 +196,11 @@ Renderer.drawScene = function ()
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, Renderer.grass_tile_texture);
     }
+    if(drawingSunShadowMap)
+        gl.cullFace(gl.FRONT);
     drawObject(Game.scene.groundObj, [0.3, 0.7, 0.2, 1.0], gl, shader, use_color);
+    if(drawingSunShadowMap)
+        gl.cullFace(gl.BACK);
 
     // track
     if(use_color){
@@ -232,6 +249,26 @@ Renderer.drawShadowmaps = function(){
   
     gl.useProgram(Renderer.shadowMapShader);
     
+    // frame vista: da coordinate vista a coordinate mondo
+    // inv frame di vista: da coordinate mondo a coordinate vista
+
+    // Renderer.shadowMapViewMatrix è la matrice di vista dal "punto" di vista del sole
+    // ruota luce sole intorno all'asse X
+    sunDir = glMatrix.vec3.rotateX(
+        glMatrix.vec3.create(), 
+        sunDir, // cumula la rotazione
+        [0,0,0],
+        3.14/1500);
+    //console.log(sunDir);
+    // nuova viewMatrix data la nuova sun direction
+    Renderer.shadowMapViewMatrix = glMatrix.mat4.lookAt( // restituisce inv frame di vista
+        glMatrix.mat4.create(),
+        // riscalo direzione luce per allontanare il "punto" luce dal centro del mondo
+        glMatrix.vec3.scale(glMatrix.vec3.create(), sunDir, 100),
+        [0, 0, 0], // view direction
+        [0, 1, 0] // up vector
+    );
+
     // shadowMap relativa al sole
     gl.bindFramebuffer(gl.FRAMEBUFFER, Renderer.shadowMapFramebuffer);
     gl.clear(gl.DEPTH_BUFFER_BIT); // clears buffers to preset values.
@@ -243,7 +280,7 @@ Renderer.drawShadowmaps = function(){
             Renderer.shadowMapViewMatrix
         )
     );
-    Renderer.drawScene();
+    Renderer.drawScene(true);
 
     // shadowMap relativa al faro sinistro
     gl.bindFramebuffer(gl.FRAMEBUFFER, Renderer.leftHeadlightShadowMapFramebuffer);
@@ -321,6 +358,8 @@ Renderer.display = function(){
     Renderer.currentShader = Renderer.uniformShader;
     Renderer.useColor = true;
     Renderer.startDrawScene();
+
+
 
     // sun
     gl.activeTexture(gl.TEXTURE3);
@@ -402,6 +441,8 @@ Renderer.setupAndStart = function (){
     /* initialize objects to be rendered */
     Renderer.initializeObjects();
 
+    sunDir = Game.scene.weather.sunLightDirection;
+
     /* create the shader */
     Renderer.uniformShader = new uniformShader(Renderer.gl);
     Renderer.currentShader = Renderer.uniformShader;
@@ -431,17 +472,6 @@ Renderer.setupAndStart = function (){
     // ortogonale: raggi di luce paralleli
     // glMatrix.mat4.ortho: generates a orthogonal projection matrix with the given bounds
     Renderer.shadowMapProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), /*left*/-150, /*right*/150, /*bottom*/-120, /*top*/120, 30, 350);
-
-    // frame vista: da coordinate vista a coordinate mondo
-    // inv frame di vista: da coordinate mondo a coordinate vista
-    // Renderer.shadowMapViewMatrix è la matrice di vista dal "punto" di vista del sole
-    Renderer.shadowMapViewMatrix = glMatrix.mat4.lookAt( // restituisce inv frame di vista
-        glMatrix.mat4.create(),
-        // riscalo direzione luce per allontanare il "punto" luce dal centro del mondo
-        glMatrix.vec3.scale(glMatrix.vec3.create(), Game.scene.weather.sunLightDirection, 100),
-        [0, 0, 0], // view direction
-        [0, 1, 0] // up vector
-    );
 
     /* load textures */
     Renderer.ground_texture        = load_texture(gl, "../common/textures/street5.png", 0); // campo 0 -> texture

@@ -41,9 +41,9 @@ makeCar = function()
         stack.push();
         stack.multiply(new_car.car_frame_transform);
         new_car.loadModelMatrix(gl, shader, stack);
-        drawObject(new_car.car_frame, [0.2, 0.2, 1, 1], gl, shader, use_color);
+        drawObject(new_car.car_frame, [0.7, 0.7, 0.7, 1], gl, shader, use_color);
         stack.pop();
-      
+
         var speed = car.speed;
         var circumference = new_car.car_wheel_radius * 2 * 3.1415;
         new_car.rotation_angle = new_car.rotation_angle + (speed / circumference);
@@ -51,7 +51,7 @@ makeCar = function()
         var steering_angle = car.wheelsAngle;
         var car_wheel_rotation_and_speed = glMatrix.mat4.fromYRotation(glMatrix.mat4.create(), steering_angle);
         glMatrix.mat4.mul(car_wheel_rotation_and_speed, car_wheel_rotation_and_speed, car_wheel_speed);
-      
+
         stack.push();
         stack.multiply(new_car.car_wheel_translation_fl);
         stack.push();
@@ -63,7 +63,7 @@ makeCar = function()
         stack.pop();
         stack.pop();
         stack.pop();
-      
+
         stack.push();
         stack.multiply(new_car.car_wheel_translation_fr);
         stack.push();
@@ -75,9 +75,8 @@ makeCar = function()
         stack.pop();
         stack.pop();
         stack.pop();
-      
-      
-      
+
+
         stack.push();
         stack.multiply(new_car.car_wheel_translation_bl);
         stack.push();
