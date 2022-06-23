@@ -33,13 +33,13 @@
       this.isBraking 			 = this.control_keys['ArrowDown'];
             
      if (this.isRotatingLeft){
-          this.wheelsAngle += .004;
+          this.wheelsAngle += .008;
         if( this.wheelsAngle > 0.3)   
            this.wheelsAngle = .3;
        }
        else
      if (this.isRotatingRight){
-          this.wheelsAngle -= .004;
+          this.wheelsAngle -= .008;
           if( this.wheelsAngle < -0.3)   
            this.wheelsAngle  = -.3;
        }       
