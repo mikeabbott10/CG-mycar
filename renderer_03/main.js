@@ -457,8 +457,8 @@ Renderer.setupAndStart = function (){
     Renderer.headlights = {};
     // glMatrix.mat4.perspective: generates a perspective projection matrix with the given bounds
     Renderer.headlightProjectionMatrix = glMatrix.mat4.perspective( glMatrix.mat4.create(), 0.35, /*ratio*/1, /*near*/1, /*far*/500 );
-    Renderer.headlights["left"] = new ChaseCamera([-0.7, 0.35, -4], [-0.55, 0.45, -2]);
-    Renderer.headlights["right"] = new ChaseCamera([0.7, 0.35, -4], [0.55, 0.45, -2]);
+    Renderer.headlights["left"] = new ChaseCamera([-0.7, 0.2, -4], [-0.55, 0.45, -2]);
+    Renderer.headlights["right"] = new ChaseCamera([0.7, 0.2, -4], [0.55, 0.45, -2]);
 
     Renderer.headlightShadowMapResolution = [2048, 2048];
     Renderer.leftHeadlightShadowMapFramebuffer = makeFramebuffer(Renderer.gl, Renderer.headlightShadowMapResolution);
@@ -482,6 +482,8 @@ Renderer.setupAndStart = function (){
     Renderer.roof_texture          = load_texture(gl, "../common/textures/roof.jpg", 0);
     Renderer.grass_tile_texture    = load_texture(gl, "../common/textures/grass_tile.png", 0);
     Renderer.headlight_texture     = load_texture(gl, "../common/textures/headlight.png", 2, false);
+    
+    
     Renderer.skybox_texture        = make_cubemap(gl,
         "../common/textures/cubemap/posx.jpg",
         "../common/textures/cubemap/negx.jpg",
@@ -490,6 +492,8 @@ Renderer.setupAndStart = function (){
         "../common/textures/cubemap/posz.jpg",
         "../common/textures/cubemap/negz.jpg",
     2);
+
+    
 
     /* add listeners for the mouse / keyboard events */
     Renderer.mouse = {};

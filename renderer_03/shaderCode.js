@@ -247,8 +247,8 @@ return `
 
     vec4 computeHeadlightColor(vec2 headlightUV, float distance){
         if(  distance > 0.0 
-                    && all(greaterThanEqual( headlightUV, vec2(0.1, 0.1) )) 
-                    && all(lessThanEqual( headlightUV, vec2(0.9, 0.9) ))  ){
+                    && all(greaterThanEqual( headlightUV, vec2(0.0, 0.0) )) 
+                    && all(lessThanEqual( headlightUV, vec2(1.0,1.0) ))  ){
             // fragment si trova nel cono di luce del faro
             return texture2D(uHeadlightTexture, headlightUV);
         }
@@ -313,7 +313,7 @@ return `
         }
 
         // fari macchina
-        vec2 leftHeadlightUV = (vLeftHeadlightPosition.xy / vLeftHeadlightPosition.w) * 0.5 + 0.5; // coordinate in shadowmap relativa al punto di vista del faro sx
+        vec2 leftHeadlightUV = (vLeftHeadlightPosition.xy / vLeftHeadlightPosition.w) * 0.5 + 0.5; // coordinate texture relative al punto di vista del faro sx
         float leftHeadlightDepth = (vLeftHeadlightPosition.z / vLeftHeadlightPosition.w) * 0.5 + 0.5; // profondità del frammento rispetto alla luce del faro sx
         vec4 leftHeadlightColor = clamp(
                 computeHeadlightColor(leftHeadlightUV, vLeftHeadlightPosition.z) *
