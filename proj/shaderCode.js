@@ -286,13 +286,11 @@ return `
         return inLight / count;
     }
 
-    float scaleByDistance(float distance, float factor)
-    {
+    float scaleByDistance(float distance, float factor){
         return factor / (distance * distance);
     }
 
-    void main(void)                                
-    {                             
+    void main(void){                             
         vec3 currNormal = computeNormal(uMaterial);
         vec4 currDiffuseColor = getDiffuseColor(uMaterial);
         vec4 ambientColor = vec4(uAmbientColor.xyz * currDiffuseColor.xyz, 1.0);

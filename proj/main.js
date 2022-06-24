@@ -258,7 +258,7 @@ Renderer.drawShadowmaps = function(){
         glMatrix.vec3.create(), 
         sunDir, // cumula la rotazione
         [0,0,0],
-        3.14/1500);
+        3.14/2000);
     //console.log(sunDir);
     // nuova viewMatrix data la nuova sun direction
     Renderer.shadowMapViewMatrix = glMatrix.mat4.lookAt( // restituisce inv frame di vista
